@@ -1,0 +1,14 @@
+# Build output
+/hdtvheadend
+/dist/
+
+# Reference-only projects studied during development (see README's
+# Acknowledgments) — not part of this project, not meant to be committed.
+/other-projects/
+
+# Local config/state if you ever run the binary from inside the repo dir
+config.json
+*.log
+
+# Editor/OS cruft
+.DS_Store
