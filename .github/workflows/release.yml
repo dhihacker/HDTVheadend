@@ -1,0 +1,73 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build all targets
+        run: |
+          mkdir -p dist
+          build() {
+            local goarch="$1" goarm="$2" name="$3"
+            echo "Building $name..."
+            CGO_ENABLED=0 GOOS=linux GOARCH="$goarch" GOARM="$goarm" \
+              go build -trimpath -ldflags="-s -w" -o "dist/hdtvheadend-linux-$name" .
+          }
+          build amd64 "" amd64
+          build arm64 "" arm64
+          build arm 7 armv7
+          build 386 "" 386
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > checksums.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hdtvheadend-binaries
+          path: dist/
+
+      - name: Publish rolling "latest" release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git push origin :refs/tags/latest || true
+          git tag -f latest
+          git push origin refs/tags/latest
+
+          gh release delete latest --yes || true
+          gh release create latest dist/* \
+            --title "Latest build ($(git rev-parse --short HEAD))" \
+            --notes "Automatically built from the latest commit on \`main\` ($(git rev-parse HEAD)). Not a stable/tagged release — for versioned releases, see the other entries on the releases page." \
+            --prerelease
+
+      - name: Publish versioned release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" dist/* \
+            --title "${{ github.ref_name }}" \
+            --generate-notes
