@@ -1,8 +1,12 @@
+<div align="center">
+
 # HDTVheadend
 
 A single-binary DVB/IP streaming headend — tune, pull, receive, descramble, and republish live TV over a modern web dashboard. No ffmpeg, no external runtime dependencies, no dynamic linking. Just one static binary.
 
 ![HDTVheadend dashboard](screenshot-dashboard.png)
+
+</div>
 
 ## Why
 
