@@ -165,6 +165,9 @@ function renderDashboard(status) {
   document.getElementById('dClientCount').textContent = status.client_count;
   document.getElementById('dInputBps').textContent = formatBps(status.input_bps);
   document.getElementById('dOutputBps').textContent = formatBps(status.output_bps);
+  const caCount = state.streams.filter(s => s.ca && s.ca.type).length;
+  const caEl = document.getElementById('dCACount');
+  if (caEl) caEl.textContent = caCount;
 
   const dvbRunning = (status.streams || []).filter(s => s.running && isDVB(s.id)).length;
   const dvbTotal = status.tuner_count;
@@ -285,7 +288,7 @@ function renderStreams() {
       : initials;
 
     const outBadges = (s.outputs || []).map(o => `<span class="badge">${o.type}</span>`).join('');
-    const caBadge = s.ca && s.ca.type ? `<span class="badge ca">${s.ca.type}</span>` : '';
+    const caBadge = s.ca && s.ca.type ? `<span class="badge ca">${caLabel(s.ca.type)}</span>` : '';
     const inBadge = `<span class="badge">${s.input ? s.input.type : '—'}</span>`;
     const modeBadge = s.mode === 'on_demand' ? `<span class="badge">on demand</span>` : '';
 
@@ -327,6 +330,10 @@ function renderStreams() {
   grid.querySelectorAll('.status-btn').forEach(el => el.addEventListener('click', () => openStatusModal(el.dataset.id)));
   grid.querySelectorAll('.edit-btn').forEach(el => el.addEventListener('click', () => openStreamModal(el.dataset.id)));
   grid.querySelectorAll('.delete-btn').forEach(el => el.addEventListener('click', () => deleteStream(el.dataset.id)));
+}
+
+function caLabel(type) {
+  return ({ biss_sw: 'BISS-1', biss_cw: 'BISS-CA', ci_plus: 'CI/CI+' })[type] || type;
 }
 
 async function onToggleEnabled(e) {
@@ -697,12 +704,13 @@ function renderStreamForm(s, editing) {
       <div id="grp_rtmp_pull_note" class="input-field-group empty-note" style="margin:-4px 0 12px;">Use this when a stream already exists somewhere else and you want to pull/play it (e.g. a VPS or another media server) — the opposite of "RTMP server" above, which instead waits for something to push to you. Enter the full URL as given, e.g. rtmp://195.250.31.2/static/TVM (use rtmps:// for TLS). The app/path segment is passed through but otherwise doesn't matter; only the last path segment (the stream name) is used to request the stream.</div>
 
       <div class="section-label">Conditional access</div>
+      <div class="ca-callout"><strong>Use only with authorized feeds.</strong> BISS is for contribution feeds where the distributor gave you the key. CI/CI+ uses a licensed hardware CAM and subscriber card. This build does not support card-sharing protocols.</div>
       <div class="field">
         <label>Type</label>
         <select id="f_ca_type">
           <option value="">None</option>
           <option value="biss_sw" ${ca.type === 'biss_sw' ? 'selected' : ''}>BISS-1 session word</option>
-          <option value="biss_cw" ${ca.type === 'biss_cw' ? 'selected' : ''}>BISS control word</option>
+          <option value="biss_cw" ${ca.type === 'biss_cw' ? 'selected' : ''}>BISS-CA control word</option>
           <option value="ci_plus" ${ca.type === 'ci_plus' ? 'selected' : ''}>CI/CI+ hardware CAM</option>
         </select>
       </div>
